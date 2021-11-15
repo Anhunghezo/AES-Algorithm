@@ -11,7 +11,7 @@ public class AESAlgorithm {
     public static final int NB_VALUE = 4;
     
     private static int m_version = 1;//Chưa biết công dụng
-    
+    //Độ dài khoá (Nk) | Kích thước khối (Nb) | Số lần lặp (Nr)    
     // AES-128 Nk=4, Nb=4, Nr=10
     // AES-192 Nk=6, Nb=4, Nr=12
     // AES-256 Nk=8, Nb=4, Nr=14
