@@ -1,17 +1,15 @@
-package test2;
+package aes;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
-public class AESAlgorithm {
-    private static String DEFAULT_CHARSET = "UTF-8";
-    
+public class AESAlgorithm {    
     public static final int KEY_SIZE_128 = 128;
     public static final int KEY_SIZE_192 = 192;
     public static final int KEY_SIZE_256 = 256;
     public static final int NB_VALUE = 4;
-    
-    private static int m_version = 1;//Chưa biết công dụng
-    
+        
     // AES-128 Nk=4, Nb=4, Nr=10
     // AES-192 Nk=6, Nb=4, Nr=12
     // AES-256 Nk=8, Nb=4, Nr=14
@@ -76,12 +74,15 @@ public class AESAlgorithm {
         {(byte) 0x17, (byte) 0x2b, (byte) 0x04, (byte) 0x7e, (byte) 0xba, (byte) 0x77, (byte) 0xd6, (byte) 0x26, (byte) 0xe1, (byte) 0x69, (byte) 0x14, (byte) 0x63, (byte) 0x55, (byte) 0x21, (byte) 0x0c, (byte) 0x7d}
     };
     
-    //Chưa rõ
-    protected static final int Rcon[] = {0x01000000, 0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0x1b000000, 0x36000000, 0x6c000000};
+    protected static final int Rcon[] = 
+        {0x00000000, 0x01000000, 0x02000000, 
+        0x04000000, 0x08000000, 0x10000000, 
+        0x20000000, 0x40000000, 0x80000000, 
+        0x1b000000, 0x36000000};
     
     public AESAlgorithm(int iBlockLength) {
         if(!isValidKeySize(iBlockLength)){
-            throw new java.lang.UnsupportedOperationException("Khóa chỉ có độ dài:128, 192, 256");
+            throw new java.lang.UnsupportedOperationException("Khóa chỉ có độ dài: 128, 192, 256");
         }
     }
     
@@ -93,7 +94,6 @@ public class AESAlgorithm {
         byte bBit = (byte) (value & bMasks[i]);
         return (byte) ((byte) (bBit >> i) & (byte) 0x01);
     }
-
     
     //Chưa rõ
     //Nhân đa thức nhị phân
@@ -131,7 +131,7 @@ public class AESAlgorithm {
 
         //Vòng 0
         state = addRoundKey(state, wordsKeyExpansion, 0);
-
+        
         //vòng 1 -> Nr-1
         for (int round = 1; round <= Nr - 1; round++) {
             state = subBytes(state);
@@ -215,14 +215,12 @@ public class AESAlgorithm {
         int i = 0;
 
         while (i < Nk) {
-            w[i] = toWord(key[4 * i], key[4 * i + 1], key[4 * i + 2],
-                          key[4 * i + 3]);
+            w[i] = toWord(key[4 * i], key[4 * i + 1], key[4 * i + 2], key[4 * i + 3]);
             i++;
         }
 
         i = Nk;
         
-        //Chưa rõ tại sao lại là Nr+1
         while (i < Nb * (Nr + 1)) {
             iTemp = w[i - 1];
             if (i % Nk == 0) {
@@ -330,43 +328,198 @@ public class AESAlgorithm {
             stateNew[3][c] = xor4Bytes(finiteMultiplication(state[0][c], 0x0b), finiteMultiplication(state[1][c], 0x0d), finiteMultiplication(state[2][c], 0x09), finiteMultiplication(state[3][c], 0x0e));
         }
         return stateNew;
-
     }
     
-    public static void main(String[] args) {
-        byte s[][] = {
-            {(byte) 0x00, (byte) 0x11, (byte) 0x22, (byte) 0x33},
-            {(byte) 0x44, (byte) 0x55, (byte) 0x66, (byte) 0x77},
-            {(byte) 0x88, (byte) 0x99, (byte) 0xaa, (byte) 0xbb},
-            {(byte) 0xcc, (byte) 0xdd, (byte) 0xee, (byte) 0xff}
-        };
+    //Chuyển đổi chuỗi Hex thành Hex
+    public byte[] decodeHexString(String hexString) {
+        if (hexString.length() % 2 == 1) {
+            throw new IllegalArgumentException(
+              "Invalid hexadecimal String supplied.");
+        }
 
-        byte key[] = {(byte) 0x00, (byte) 0x11, (byte) 0x22, (byte) 0x33, (byte) 0x44, (byte) 0x55, (byte) 0x66, (byte) 0x77, (byte) 0x88, (byte) 0x99, (byte) 0xaa, (byte) 0xbb, (byte) 0xcc, (byte) 0xdd, (byte) 0xee, (byte) 0xff};
-        AESAlgorithm aes = new AESAlgorithm(128);
-        int keym[] = aes.createKeyExpansion(key);
-        byte str[][] = aes.cipher(s, keym);
+        byte[] bytes = new byte[hexString.length() / 2];
+        for (int i = 0; i < hexString.length(); i += 2) {
+            bytes[i / 2] = hexToByte(hexString.substring(i, i + 2));
+        }
+        return bytes;
+    }
+    
+    public byte hexToByte(String hexString) {
+        int firstDigit = toDigit(hexString.charAt(0));
+        int secondDigit = toDigit(hexString.charAt(1));
+        return (byte) ((firstDigit << 4) + secondDigit);
+    }
+    
+    private int toDigit(char hexChar) {
+        int digit = Character.digit(hexChar, 16);
+        if(digit == -1) {
+            throw new IllegalArgumentException(
+              "Invalid Hexadecimal Character: "+ hexChar);
+        }
+        return digit;
+    }
+    
+    public static void main(String[] args) throws UnsupportedEncodingException {
+        Scanner sc = new Scanner(System.in);
         
-        for(int i=0; i<s.length; i++){
-            for(int j=0;j<s[i].length; j++){
-                System.out.print(s[i][j]);
+        int size = 0; //Kích thước khóa
+        String strKey = ""; //Chuỗi key
+        
+        String strInPlaint = ""; //Chuỗi cần mã hóa
+        String strOutCipher = ""; //Chuỗi đã mã hóa
+        
+        String strInCipher = ""; //Chuỗi cần giải mã
+        String strOutPlaint = ""; //Chuỗi đã giải mã
+        
+        int ver = 0; //Số phiên bản
+        
+        byte[] byteKey; //Mảng key
+        int[] byteKeyExpansion; //Mảng key mở rộng
+        
+        byte[] byteInPlaint; //Mảng byte chuyển từ chuỗi strInPlaint
+        byte[][][] byteInPlaintConvert; //Mảng byte chuyển từ mảng byteInPlaint
+        byte[][][] byteOutCipher; //Mảng byte chuyển được mã hóa từ byteInPlaintConvert
+        byte[] byteOutCipherConvert; //Mảng byte chuyển từ mảng byteOutCipher
+        
+        byte[] byteInCipher; //Mảng byte chuyển từ chuỗi strInCipher
+        byte[][][] byteInCipherConvert; //Mảng byte chuyển từ mảng byteInCipher
+        byte[][][] byteOutPlaint; //Mảng byte chuyển được giải mã từ byteInCipherConvert
+        byte[] byteOutPlaintConvert; //Mảng byte chuyển từ mảng byteOutPlaint
+        
+        
+        
+        
+        
+        
+        //Xử lý khóa
+        size = 128; //Kích cỡ khóa là 128
+        AESAlgorithm aes = new AESAlgorithm(size);
+        strKey = "00112233445566778899aabbccddeeff"; //Nội dung khóa
+        byteKey = aes.decodeHexString(strKey); //Chuyển chuỗi Hex thành mảng Hex[]
+        byteKeyExpansion = aes.createKeyExpansion(byteKey); //Tạo khóa mở rộng
+        
+        
+        
+        
+        
+        
+        
+        //Mã hóa
+//        //Input: Chuỗi Hex
+//        strInPlaint = "00112233445566778899aabbccddeeff"; //Chuỗi đầu vào
+//        byteInPlaint = aes.decodeHexString(strInPlaint); //Chuyển chuỗi Hex thành mảng Hex[]
+
+        //Input: Chuỗi UTF8
+        strInPlaint = "Nguyễn Trọng Đức"; //Chuỗi đầu vào
+        byteInPlaint = strInPlaint.getBytes("UTF-8"); //Chuyển chuỗi đầu vào sang byte[]
+        
+        //Xác định số phiên bản
+        if(byteInPlaint.length%16==0){
+            ver = byteInPlaint.length/16;
+        }else{
+            ver = byteInPlaint.length/16+1;
+        }
+        
+        //Chuyển mã thành nhiều phiên bản byte[][]
+        byteInPlaintConvert = new byte[ver][4][4];
+        for(int v = 0; v < ver; v++){
+            for(int i = 0; i < 4; i++){
+                for(int j = 0; j < 4; j++){
+                    if(16*v+4*i+j < byteInPlaint.length){
+                        byteInPlaintConvert[v][j][i] = byteInPlaint[16*v+4*i+j];
+                    }else{
+                        byteInPlaintConvert[v][j][i] = (byte) 0x20; //Thêm khoảng trống
+                    }
+                }
             }
         }
         
-        System.out.println("\n");
-        for(int i=0; i<str.length; i++){
-            for(int j=0;j<str[i].length; j++){
-                System.out.print(str[i][j]);
+        //Mã hóa các phiên bản
+        byteOutCipher = new byte[ver][4][4];
+        byteOutCipherConvert = new byte[ver*4*4];
+        for(int v = 0; v <ver; v++){
+            byteOutCipher[v] = aes.cipher(byteInPlaintConvert[v], byteKeyExpansion); //Mã hóa phiên bản v
+            
+            //Output: Chuỗi hex
+            StringBuilder sb = new StringBuilder();
+            for(int i = 0; i < 4; i++){
+                for(int j = 0; j < 4; j++){
+                    sb.append(String.format("%02X", byteOutCipher[v][j][i]));
+                }
+            }
+            strOutCipher += sb.toString();
+            
+//            //Output: Chuỗi UTF8
+//            for(int i = 0; i < 4; i++){
+//                for(int j = 0; j < 4; j++){
+//                    byteOutCipherConvert[16*v+4*i+j] = byteOutCipher[v][j][i];
+//                }
+//            }
+//            strOutCipher = new String(byteOutCipherConvert, StandardCharsets.UTF_8);
+        }
+        
+        System.out.println("Chuỗi mã hóa: "+strOutCipher);
+        
+        
+        
+        
+        
+        //Giải mã
+        //Input: Chuỗi hex
+//        strInCipher = "62F679BE2BF0D931641E039CA3401BB2"; //Chuỗi đầu vào
+        strInCipher = "217F733433A81C846712B97E602B01B46900324B85295C5D32C1295253A1F251"; //Chuỗi đầu vào
+        byteInCipher = aes.decodeHexString(strInCipher); //Chuyển chuỗi đầu vào sang byte[]
+        
+        //Xác định số phiên bản
+        if(byteInCipher.length%16==0){
+            ver = byteInCipher.length/16;
+        }else{
+            ver = byteInCipher.length/16+1;
+        }
+        
+        //Chuyển mã thành nhiều phiên bản byte[][]
+        byteInCipherConvert = new byte[ver][4][4];
+        for(int v = 0; v < ver; v++){
+            for(int i = 0; i < 4; i++){
+                for(int j = 0; j < 4; j++){
+                    if(16*v+4*i+j < byteInCipher.length){
+                        byteInCipherConvert[v][j][i] = byteInCipher[16*v+4*i+j];
+                    }else{
+                        byteInCipherConvert[v][j][i] = (byte) 0x20; //Thêm khoảng trống
+                    }
+                }
             }
         }
-        System.out.println("\n");
-        byte ivstr[][] = aes.invCipher(str, keym);
-        for(int i=0; i<ivstr.length; i++){
-            for(int j=0;j<ivstr[i].length; j++){
-                System.out.print(ivstr[i][j]);
+        
+        //Giải mã các phiên bản
+        byteOutPlaint = new byte[ver][4][4];
+        byteOutPlaintConvert = new byte[ver*4*4];
+        for(int v = 0; v <ver; v++){
+            byteOutPlaint[v] = aes.invCipher(byteInCipherConvert[v], byteKeyExpansion);
+            
+//            //Output: Chuỗi hex
+//            StringBuilder sb = new StringBuilder();
+//            for(int i = 0; i < 4; i++){
+//                for(int j = 0; j < 4; j++){
+//                    sb.append(String.format("%02X", byteOutPlaint[v][j][i]));
+//                }
+//            }
+//            strOutPlaint += sb.toString();
+            
+            //Output: Chuỗi UTF8
+            for(int i = 0; i < 4; i++){
+                for(int j = 0; j < 4; j++){
+                    byteOutPlaintConvert[16*v+ 4*i + j] = byteOutPlaint[v][j][i];
+                }
             }
+            strOutPlaint = new String(byteOutPlaintConvert, StandardCharsets.UTF_8);
         }
+        
+        System.out.println("Chuỗi giải mã: "+strOutPlaint);
     }
     
     
+    
+
 }
 
